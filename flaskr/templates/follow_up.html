@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Follow Up{% endblock %}
+
+{% block content %}
+<div class="container">
+	<h2>Follow-Up Details</h2>
+	<div class="card mt-3">
+		<div class="card-body">
+			<h5 class="card-title">{{ document['name'] }}</h5>
+			<p><strong>Fecha:</strong> {{ document['created_at'] }}</p>
+			<p><strong>Registro:</strong> {{ document['id'] }}</p>
+			<p><strong>Asunto:</strong> {{ document['description'] }}</p>
+			<p><strong>Emisor:</strong> {{ document['sender'] }}</p>
+			<table class="table table-striped table-hover">
+				<thead class="table-dark">
+					<th>#</th>
+					<th>Receptores</th>
+					<th>Status</th>
+				</thead>
+				<tbody>
+					{% for receiver in receivers %}
+					<tr>
+						<td>{{ loop.index }}</td>
+						<td>{{ receiver['receiver_username'] }}</td>
+						<td>WIP</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{% endblock %}

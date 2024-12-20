@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		{% if status %}
+		<h2>{{ status.capitalize() }} Documentos</h2>
+		<a href="{{ url_for('document.index') }}" class="btn btn-secondary">Volver al Dashboard</a>
+		{% else %}
+		<h2>Documentos</h2>
+		<div>
+			<a href="{{ url_for('document.status', status='issued') }}" class="btn btn-primary">Emitidos</a>
+			<a href="{{ url_for('document.status', status='received') }}" class="btn btn-info">Recibidos</a>
+			<a href="{{ url_for('document.status', status='archived') }}" class="btn btn-secondary">Archivados</a>
+			{% if g.user['role'] in ['boss', 'secretary'] %}
+			<a href="{{ url_for('document.create') }}" class="btn btn-success">Crear Documento</a>
+			{% endif %}
+			{% if g.user['role'] == 'boss' %}
+			<a href="{{ url_for('document.create_user') }}" class="btn btn-dark">Crear Usuario</a>
+			{% endif %}
+		</div>
+		{% endif %}
+	</div>
+
+	{% if docs %}
+	<table class="table table-striped table-hover">
+		<thead class="table-dark">
+			<tr>
+				<th>#</th>
+				<th>Fecha</th>
+				<th># Registro</th>
+				<th>Documento</th>
+				<th>Asunto</th>
+				<th>Emisor</th>
+				<th>Receptor</th>
+				<th>Acciones</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for doc in docs %}
+			<tr>
+				<td>{{ loop.index }}</td>
+				<td>{{ doc['created_at'] }}</td>
+				<td>{{ doc['id'] }}</td>
+				<td>{{ doc['name'] }}</td>
+				<td>{{ doc['description'] }}</td>
+				<td>{{ doc['sender'] }}</td>
+				<td>{{ doc['receiver'] }}</td>
+				<td>
+					<a href="{{ url_for('document.follow_up', id=doc['id']) }}" class="btn btn-warning btn-sm"><i class="bi bi-pin-map"></i></a>
+					<a href="{{ url_for('document.observations', id=doc['id']) }}" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i></a>
+					<a href="{{ url_for('document.download_file', id=doc['id']) }}" class="btn btn-success btn-sm"><i class="bi bi-download"></i></a>
+
+					{% if (g.user['role'] == 'boss') or (doc['receiver'] == g.user['username']) %}
+						{% if doc['status'] == 'issued' %}
+					<a href="{{ url_for('document.mark_received', id=doc['id']) }}" class="btn btn-success btn-sm">Mark as Received</a>
+						{% else %}
+					<a href="{{ url_for('document.mark_archived', id=doc['id']) }}" class="btn btn-danger btn-sm">Mark as Archived</a>
+						{% endif %}
+					{% endif %}
+
+					{% if g.user['role'] == 'boss' %}
+					<!-- Delete button -->
+					<form action="{{ url_for('document.delete', id=doc['id']) }}" method="POST" style="display:inline-block;">
+						<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this document?');"><i class="bi bi-x"></i></button>
+					</form>
+					{% endif %}
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+		{% if status %}
+	<p class="text-muted">No {{ status }} documents available.</p>
+		{% else %}
+	<p class="text-muted">No documents available.</p>
+		{% endif %}
+	{% endif %}
+</div>
+{% endblock %}

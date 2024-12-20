@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Nuevo Documento{% endblock %}
+
+{% block content %}
+<div class="container">
+	<h2>Crear Nuevo Documento</h2>
+	<form id="form" method="post" class="mt-4" enctype=multipart/form-data>
+		<div class="mb-3">
+			<label for="name" class="form-label">Nombre del Documento</label>
+			<input type="text" class="form-control" name="name" id="name" placeholder="Nombre del Documento" required>
+		</div>
+		<div class="mb-3">
+			<label for="description" class="form-label">Descripción</label>
+			<textarea class="form-control" name="description" id="description" rows="3" placeholder="Descripción" required></textarea>
+		</div>
+		<div class="mb-3">
+			<input type="file" class="form-control" name="file" id="file" required>
+		</div>
+		<div class="mb-3">
+			<label for="receivers" class="form-label">Receptores</label>
+			<input id="receivers" name="receivers" class="form-control" placeholder="Escriba para añadir receptores...">
+			<small class="form-text text-muted">Escriba el nombre de un usuario y presione Enter. Escriba "All Users" para enviar a todos.</small>
+		</div>
+		<button type="submit" class="btn btn-success">Crear Documento</button>
+	</form>
+</div>
+<script>
+	// Sample data of users to simulate database entries
+	const users = [
+		{% for user in users %}
+		{ value: "{{ user['id'] }}", name: "{{ user['username'] }}" },
+		{% endfor %}
+		{ value: "all", name: "All Users" }
+	];
+
+	// Initialize Tagify on the input
+	const form = document.getElementById('form');
+	const input = document.getElementById('receivers');
+	const tagify = new Tagify(input, {
+		whitelist: users.map(user => user.name),
+		dropdown: {
+			maxItems: 5,           // Maximum items to show in dropdown
+			classname: 'tagify-dropdown', // Custom dropdown class
+			enabled: 0,            // Always show dropdown
+			closeOnSelect: false   // Don't close dropdown when an item is selected
+		}
+	});
+
+	// Convert usernames back to IDs for submission
+	form.addEventListener('submit', () => {
+		const selectedTags = tagify.value.map(tag => {
+			const user = users.find(u => u.name === tag.value);
+			return user ? user.value : null;
+		});
+		input.value = selectedTags.join(',');
+	});
+</script>
+{% endblock %}

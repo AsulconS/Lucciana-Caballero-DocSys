@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Observations{% endblock %}
+
+{% block content %}
+<div class="container">
+	<h2>Observaciones para "{{ document['name'] }}"</h2>
+
+	<!-- Existing Observations -->
+	{% if observations %}
+	<ul class="list-group mb-4">
+		{% for obs in observations %}
+		<li class="list-group-item">
+			<strong>{{ obs['username'] }}</strong> ({{ obs['created_at'] }}):
+			<p class="mb-0">{{ obs['content'] }}</p>
+		</li>
+		{% endfor %}
+	</ul>
+	{% else %}
+	<p class="text-muted">Aún no hay observaciones.</p>
+	{% endif %}
+
+	<!-- Form to Add Observation -->
+	<h4>Añadir Observación</h4>
+	<form method="post">
+		<div class="mb-3">
+			<textarea name="observation" class="form-control" rows="3" placeholder="Escriba su observación aquí..." required></textarea>
+		</div>
+		<button type="submit" class="btn btn-primary">Enviar</button>
+	</form>
+</div>
+{% endblock %}
