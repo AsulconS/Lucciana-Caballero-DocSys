@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS document;
 DROP TABLE IF EXISTS observation;
 DROP TABLE IF EXISTS document_filenames;
-DROP TABLE IF EXISTS document_receivers;
+DROP TABLE IF EXISTS document_receiver;
 
 CREATE TABLE user (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,10 +38,11 @@ CREATE TABLE document_filenames (
 	FOREIGN KEY (document_id) REFERENCES document (id)
 );
 
-CREATE TABLE document_receivers (
+CREATE TABLE document_receiver (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	document_id INTEGER NOT NULL,
 	receiver_id INTEGER NOT NULL,
+	status TEXT NOT NULL CHECK (status IN ('issued', 'received', 'archived')),
 	FOREIGN KEY (document_id) REFERENCES document (id)
 	FOREIGN KEY (receiver_id) REFERENCES user (id)
 );

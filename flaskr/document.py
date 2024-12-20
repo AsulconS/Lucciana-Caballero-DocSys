@@ -23,22 +23,15 @@ def allowed_file(filename):
 def index():
 	"""Show documents relevant to the user."""
 	db = get_db()
-	if g.user['role'] == 'boss':
-		docs = db.execute(
-			'SELECT DISTINCT d.*, u.username AS sender '
-			'FROM document d '
-			'JOIN user u ON d.created_by = u.id;'
-		).fetchall()
-	else:
-		docs = db.execute(
-			'SELECT DISTINCT d.*, u_sender.username AS sender, u_receiver.username AS receiver '
-			'FROM document d '
-			'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
-			'LEFT JOIN document_receivers dr ON d.id = dr.document_id '
-			'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
-			'WHERE d.created_by = ? OR dr.receiver_id = ?;',
-			(g.user['id'], g.user['id'])
-		).fetchall()
+	docs = db.execute(
+		'SELECT DISTINCT d.*, u_sender.username AS sender, dr.status AS drstatus '
+		'FROM document d '
+		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
+		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
+		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
+		'WHERE dr.receiver_id = ? AND dr.status != "archived";',
+		(g.user['id'],)
+	).fetchall()
 	return render_template('index.html', docs=docs)
 
 
@@ -88,10 +81,10 @@ def status(status):
 		'SELECT DISTINCT d.*, u_sender.username AS sender, u_receiver.username AS receiver '
 		'FROM document d '
 		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
-		'LEFT JOIN document_receivers dr ON d.id = dr.document_id '
+		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
 		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
-		'WHERE (d.created_by = ? OR dr.receiver_id = ?) AND d.status = ?;',
-		(g.user['id'], g.user['id'], status)
+		'WHERE dr.receiver_id = ? AND dr.status = ?;',
+		(g.user['id'], status)
 	).fetchall()
 	return render_template('index.html', docs=docs, status=status)
 
@@ -152,15 +145,15 @@ def create():
 				# Add all users except the boss as receivers
 				for user in users:
 					db.execute(
-						'INSERT INTO document_receivers (document_id, receiver_id) VALUES (?, ?)',
-						(cur.lastrowid, user['id'])
+						'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
+						(cur.lastrowid, user['id'], 'issued')
 					)
 			else:
 				# Add selected users as receivers
 				for receiver_id in receiver_ids:
 					db.execute(
-						'INSERT INTO document_receivers (document_id, receiver_id) VALUES (?, ?)',
-						(cur.lastrowid, receiver_id)
+						'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
+						(cur.lastrowid, receiver_id, 'issued')
 					)
 			db.commit()
 
@@ -176,8 +169,8 @@ def follow_up(id):
 	"""View follow-up details for a specific document."""
 	db = get_db()
 	receivers = db.execute(
-		'SELECT u.username as receiver_username '
-		'FROM document_receivers dr '
+		'SELECT u.username as receiver_username, dr.status AS status '
+		'FROM document_receiver dr '
 		'JOIN user u ON dr.receiver_id = u.id '
 		'WHERE dr.document_id = ?;',
 		(id,)
@@ -267,7 +260,7 @@ def mark_received(id):
 
 	# Check if the document exists and if the status is 'issued' or 'archived'
 	document = db.execute(
-		'SELECT * FROM document WHERE id = ? AND status = "issued"',
+		'SELECT * FROM document WHERE id = ?;',
 		(id,)
 	).fetchone()
 
@@ -277,8 +270,8 @@ def mark_received(id):
 
 	# Update the status to 'received'
 	db.execute(
-		'UPDATE document SET status = "received" WHERE id = ?',
-		(id,)
+		'UPDATE document_receiver SET status = "received" WHERE document_id = ? AND receiver_id = ?',
+		(id, g.user['id'])
 	)
 	db.commit()
 
@@ -293,7 +286,7 @@ def mark_archived(id):
 
 	# Check if the document exists and if the status is 'received'
 	document = db.execute(
-		'SELECT * FROM document WHERE id = ? AND status = "received"',
+		'SELECT * FROM document WHERE id = ?;',
 		(id,)
 	).fetchone()
 
@@ -303,8 +296,8 @@ def mark_archived(id):
 
 	# Update the status to 'archived'
 	db.execute(
-		'UPDATE document SET status = "archived" WHERE id = ?',
-		(id,)
+		'UPDATE document_receiver SET status = "archived" WHERE document_id = ? AND receiver_id = ?',
+		(id, g.user['id'])
 	)
 	db.commit()
 

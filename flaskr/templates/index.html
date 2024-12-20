@@ -11,7 +11,6 @@
 		{% else %}
 		<h2>Documentos</h2>
 		<div>
-			<a href="{{ url_for('document.status', status='issued') }}" class="btn btn-primary">Emitidos</a>
 			<a href="{{ url_for('document.status', status='received') }}" class="btn btn-info">Recibidos</a>
 			<a href="{{ url_for('document.status', status='archived') }}" class="btn btn-secondary">Archivados</a>
 			{% if g.user['role'] in ['boss', 'secretary'] %}
@@ -34,7 +33,6 @@
 				<th>Documento</th>
 				<th>Asunto</th>
 				<th>Emisor</th>
-				<th>Receptor</th>
 				<th>Acciones</th>
 			</tr>
 		</thead>
@@ -47,19 +45,13 @@
 				<td>{{ doc['name'] }}</td>
 				<td>{{ doc['description'] }}</td>
 				<td>{{ doc['sender'] }}</td>
-				<td>{{ doc['receiver'] }}</td>
 				<td>
 					<a href="{{ url_for('document.follow_up', id=doc['id']) }}" class="btn btn-warning btn-sm"><i class="bi bi-pin-map"></i></a>
 					<a href="{{ url_for('document.observations', id=doc['id']) }}" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i></a>
 					<a href="{{ url_for('document.download_file', id=doc['id']) }}" class="btn btn-success btn-sm"><i class="bi bi-download"></i></a>
 
-					{% if (g.user['role'] == 'boss') or (doc['receiver'] == g.user['username']) %}
-						{% if doc['status'] == 'issued' %}
 					<a href="{{ url_for('document.mark_received', id=doc['id']) }}" class="btn btn-success btn-sm">Mark as Received</a>
-						{% else %}
 					<a href="{{ url_for('document.mark_archived', id=doc['id']) }}" class="btn btn-danger btn-sm">Mark as Archived</a>
-						{% endif %}
-					{% endif %}
 
 					{% if g.user['role'] == 'boss' %}
 					<!-- Delete button -->
