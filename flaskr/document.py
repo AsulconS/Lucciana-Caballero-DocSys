@@ -349,3 +349,20 @@ def download_file(id):
 	).fetchone()
 	doc_files_folder_path = os.path.join(current_app.config['UPLOAD_FOLDER_PATH'], str(id))
 	return send_from_directory(doc_files_folder_path, document_filename['filename'], as_attachment=True)
+
+
+@bp.route('/search_document', methods=('GET', 'POST'))
+@login_required
+def search_document():
+	docname = request.form['docname']
+	db = get_db()
+	docs = db.execute(
+		'SELECT DISTINCT d.*, u_sender.username AS sender, dr.status AS drstatus '
+		'FROM document d '
+		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
+		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
+		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
+		'WHERE dr.receiver_id = ? AND dr.status != "archived" AND d.name = ?;',
+		(g.user['id'], docname)
+	).fetchall()
+	return render_template('index.html', docs=docs)

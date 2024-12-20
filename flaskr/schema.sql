@@ -43,6 +43,6 @@ CREATE TABLE document_receiver (
 	document_id INTEGER NOT NULL,
 	receiver_id INTEGER NOT NULL,
 	status TEXT NOT NULL CHECK (status IN ('issued', 'received', 'archived')),
-	FOREIGN KEY (document_id) REFERENCES document (id)
+	FOREIGN KEY (document_id) REFERENCES document (id),
 	FOREIGN KEY (receiver_id) REFERENCES user (id)
 );

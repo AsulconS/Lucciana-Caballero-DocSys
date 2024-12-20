@@ -10,6 +10,18 @@
 		<a href="{{ url_for('document.index') }}" class="btn btn-secondary">Volver al Dashboard</a>
 		{% else %}
 		<h2>Documentos</h2>
+		<form action="{{ url_for('document.search_document') }}" method="post">
+			<div class="row">
+				<div class="col">
+					<div class="form-group mb-2">
+						<input type="text" class="form-control" name="docname" id="docname" placeholder="Nombre del Documento" required>
+					</div>
+				</div>
+				<div class="col">
+					<button type="submit" class="btn btn-dark mb-2"><i class="bi bi-search"></i></button>
+				</div>
+			</div>
+		</form>
 		<div>
 			<a href="{{ url_for('document.status', status='received') }}" class="btn btn-info">Recibidos</a>
 			<a href="{{ url_for('document.status', status='archived') }}" class="btn btn-secondary">Archivados</a>
