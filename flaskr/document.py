@@ -168,7 +168,7 @@ def status(status):
 		'WHERE dr.receiver_id = ? AND dr.status = ?;',
 		(g.user['id'], status)
 	).fetchall()
-	return render_template('index.html', docs=docs, status=status)
+	return render_template('index.html', docs=docs, status=status, timestamp=datetime.datetime.utcnow().replace(microsecond=0))
 
 
 @bp.route('/<int:id>/follow_up', methods=('GET',))
