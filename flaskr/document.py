@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, current_app, send_from_directory
 from flaskr.db import get_db
@@ -32,7 +33,7 @@ def index():
 		'WHERE dr.receiver_id = ? AND dr.status != "archived";',
 		(g.user['id'],)
 	).fetchall()
-	return render_template('index.html', docs=docs)
+	return render_template('index.html', docs=docs, timestamp=datetime.datetime.utcnow().replace(microsecond=0))
 
 
 @bp.route('/create_user', methods=('GET', 'POST'))

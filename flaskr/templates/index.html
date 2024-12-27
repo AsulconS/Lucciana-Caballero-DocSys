@@ -38,6 +38,7 @@
 			<tr>
 				<th>#</th>
 				<th>Fecha</th>
+				<th>Tiempo Transcurrido</th>
 				<th># Registro</th>
 				<th>Documento</th>
 				<th>Asunto</th>
@@ -50,6 +51,7 @@
 			<tr>
 				<td>{{ loop.index }}</td>
 				<td>{{ doc['created_at'] }}</td>
+				<td>{{ timestamp - doc['created_at'] }}</td>
 				<td>{{ doc['id'] }}</td>
 				<td>{{ doc['name'] }}</td>
 				<td>{{ doc['description'] }}</td>
