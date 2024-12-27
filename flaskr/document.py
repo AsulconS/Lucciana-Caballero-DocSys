@@ -26,7 +26,7 @@ def index():
 	docs = db.execute(
 		'SELECT DISTINCT d.*, u_sender.username AS sender, dr.status AS drstatus '
 		'FROM document d '
-		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
+		'LEFT JOIN user u_sender ON d.sender_id = u_sender.id '
 		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
 		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
 		'WHERE dr.receiver_id = ? AND dr.status != "archived";',
@@ -39,16 +39,19 @@ def index():
 @login_required
 def create_user():
 	"""Create a new user."""
-	if g.user['role'] != 'boss':
-		flash('Only bosses can create.', category='error')
+	if g.user['role'] != 'admin':
+		flash('Only admins can create.', category='error')
 		return redirect(url_for('document.index'))
 
 	db = get_db()
+	departments = db.execute('SELECT id, name FROM department').fetchall()
 
 	if request.method == 'POST':
 		username = request.form['username']
+		email = request.form['email']
 		password = request.form['password']
 		role = request.form['role']
+		department_id = request.form['department_id']
 		error = None
 
 		if not username:
@@ -62,48 +65,32 @@ def create_user():
 			flash(error, category='error')
 		else:
 			db.execute(
-				'INSERT INTO user (username, password, role) VALUES (?, ?, ?)',
-				(username, generate_password_hash(password), role)
+				'INSERT INTO user (username, email, password, role, department_id) VALUES (?, ?, ?, ?, ?)',
+				(username, email, generate_password_hash(password), role, department_id)
 			)
 			db.commit()
 			flash('User created successfully!', category='success')
 			return redirect(url_for('document.index'))
 
-	return render_template('create_user.html')
+	return render_template('create_user.html', departments=departments)
 
 
-@bp.route('/status/<status>', methods=('GET',))
+@bp.route('/create_document', methods=('GET', 'POST'))
 @login_required
-def status(status):
-	"""View documents with certain status."""
-	db = get_db()
-	docs = db.execute(
-		'SELECT DISTINCT d.*, u_sender.username AS sender, u_receiver.username AS receiver '
-		'FROM document d '
-		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
-		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
-		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
-		'WHERE dr.receiver_id = ? AND dr.status = ?;',
-		(g.user['id'], status)
-	).fetchall()
-	return render_template('index.html', docs=docs, status=status)
-
-
-@bp.route('/create', methods=('GET', 'POST'))
-@login_required
-def create():
+def create_document():
 	"""Create a new document."""
-	if g.user['role'] == 'customer':
-		flash('Only bosses or secretaries can create documents.', category='error')
+	if g.user['role'] == 'guest':
+		flash('Guests cannot create documents.', category='error')
 		return redirect(url_for('document.index'))
 
 	db = get_db()
 	users = db.execute('SELECT id, username FROM user').fetchall()
+	departments = db.execute('SELECT id, name FROM department').fetchall()
 
 	if request.method == 'POST':
 		file = request.files['file']
 		name = request.form['name']
-		receivers = request.form['receivers']
+		dpt_receivers = request.form['dpt_receivers']
 		description = request.form['description']
 		error = None
 
@@ -123,44 +110,64 @@ def create():
 		else:
 			# Insert the document
 			cur = db.execute(
-				'INSERT INTO document (name, description, status, created_by) VALUES (?, ?, ?, ?)',
+				'INSERT INTO document (name, description, status, sender_id) VALUES (?, ?, ?, ?)',
 				(name, description, 'issued', g.user['id'])
 			)
 			db.commit()
+			doc_id = cur.lastrowid
 
 			# Insert the file
 			filename = secure_filename(file.filename)
-			doc_files_folder_path = os.path.join(current_app.config['UPLOAD_FOLDER_PATH'], str(cur.lastrowid))
+			doc_files_folder_path = os.path.join(current_app.config['UPLOAD_FOLDER_PATH'], str(doc_id))
 			os.makedirs(doc_files_folder_path)
 			file.save(os.path.join(doc_files_folder_path, filename))
 			db.execute(
-				'INSERT INTO document_filenames (document_id, filename) VALUES (?, ?)',
-				(cur.lastrowid, filename)
+				'INSERT INTO document_filename (document_id, filename) VALUES (?, ?)',
+				(doc_id, filename)
 			)
 			db.commit()
 
 			# Insert receivers
-			receiver_ids = receivers.split(',')
-			if 'all' in receiver_ids:
-				# Add all users except the boss as receivers
+			dpt_receivers = dpt_receivers.split(',')
+			if 'all' in dpt_receivers:
+				# Add all users except the admin as receivers
 				for user in users:
 					db.execute(
 						'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
-						(cur.lastrowid, user['id'], 'issued')
+						(doc_id, user['id'], 'issued')
 					)
 			else:
 				# Add selected users as receivers
-				for receiver_id in receiver_ids:
-					db.execute(
-						'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
-						(cur.lastrowid, receiver_id, 'issued')
-					)
+				for dpt_id in dpt_receivers:
+					user_receivers = db.execute('SELECT id FROM user WHERE user.department_id = ?', (dpt_id,))
+					for user in user_receivers:
+						db.execute(
+							'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
+							(doc_id, user['id'], 'issued')
+						)
 			db.commit()
 
 			flash('Document created successfully!', category='success')
 			return redirect(url_for('document.index'))
 
-	return render_template('create.html', users=users)
+	return render_template('create_document.html', departments=departments)
+
+
+@bp.route('/status/<status>', methods=('GET',))
+@login_required
+def status(status):
+	"""View documents with certain status."""
+	db = get_db()
+	docs = db.execute(
+		'SELECT DISTINCT d.*, u_sender.username AS sender, u_receiver.username AS receiver '
+		'FROM document d '
+		'LEFT JOIN user u_sender ON d.sender_id = u_sender.id '
+		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
+		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
+		'WHERE dr.receiver_id = ? AND dr.status = ?;',
+		(g.user['id'], status)
+	).fetchall()
+	return render_template('index.html', docs=docs, status=status)
 
 
 @bp.route('/<int:id>/follow_up', methods=('GET',))
@@ -178,7 +185,7 @@ def follow_up(id):
 	document = db.execute(
 		'SELECT DISTINCT d.*, u.username AS sender '
 		'FROM document d '
-		'JOIN user u ON d.created_by = u.id '
+		'JOIN user u ON d.sender_id = u.id '
 		'WHERE d.id = ?;',
 		(id,)
 	).fetchone()
@@ -231,15 +238,15 @@ def update_status(id):
 
 	# Check if the document exists
 	document = db.execute(
-		'SELECT id, created_by FROM document WHERE id = ?', (id,)
+		'SELECT id, sender_id FROM document WHERE id = ?', (id,)
 	).fetchone()
 
 	if document is None:
 		flash('Document not found.', category='error')
 		return redirect(url_for('document.index'))
 
-	# Ensure only boss and secretary can update the status
-	if g.user['role'] not in ['boss', 'secretary']:
+	# Ensure only admin and secretary can update the status
+	if g.user['role'] not in ['admin', 'secretary']:
 		flash('You are not authorized to update the document status.', category='error')
 		return redirect(url_for('document.index'))
 
@@ -308,8 +315,8 @@ def mark_archived(id):
 @bp.route('/delete/<int:id>', methods=('POST',))
 @login_required
 def delete(id):
-	"""Delete a document. Only accessible to bosses."""
-	if g.user['role'] != 'boss':
+	"""Delete a document. Only accessible to admins."""
+	if g.user['role'] != 'admin':
 		flash('You are not authorized to delete documents.', category='error')
 		return redirect(url_for('document.index'))
 
@@ -318,7 +325,7 @@ def delete(id):
 		'SELECT id FROM document WHERE id = ?', (id,)
 	).fetchone()
 	document_filename = db.execute(
-		'SELECT filename FROM document_filenames WHERE document_id = ?',
+		'SELECT filename FROM document_filename WHERE document_id = ?',
 		(id,),
 	).fetchone()
 
@@ -333,7 +340,7 @@ def delete(id):
 		os.rmdir(doc_files_folder_path)
 
 	db.execute('DELETE FROM document WHERE id = ?', (id,))
-	db.execute('DELETE FROM document_filenames WHERE document_id = ?', (id,))
+	db.execute('DELETE FROM document_filename WHERE document_id = ?', (id,))
 	db.commit()
 	flash('Document deleted successfully!', category='success')
 	return redirect(url_for('document.index'))
@@ -344,7 +351,7 @@ def delete(id):
 def download_file(id):
 	db = get_db()
 	document_filename = db.execute(
-		'SELECT filename FROM document_filenames WHERE document_id = ?',
+		'SELECT filename FROM document_filename WHERE document_id = ?',
 		(id,),
 	).fetchone()
 	doc_files_folder_path = os.path.join(current_app.config['UPLOAD_FOLDER_PATH'], str(id))
@@ -359,7 +366,7 @@ def search_document():
 	docs = db.execute(
 		'SELECT DISTINCT d.*, u_sender.username AS sender, dr.status AS drstatus '
 		'FROM document d '
-		'LEFT JOIN user u_sender ON d.created_by = u_sender.id '
+		'LEFT JOIN user u_sender ON d.sender_id = u_sender.id '
 		'LEFT JOIN document_receiver dr ON d.id = dr.document_id '
 		'LEFT JOIN user u_receiver ON dr.receiver_id = u_receiver.id '
 		'WHERE dr.receiver_id = ? AND dr.status != "archived" AND d.name = ?;',

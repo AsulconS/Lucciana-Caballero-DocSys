@@ -18,29 +18,30 @@
 			<input type="file" class="form-control" name="file" id="file" required>
 		</div>
 		<div class="mb-3">
-			<label for="receivers" class="form-label">Receptores</label>
-			<input id="receivers" name="receivers" class="form-control" placeholder="Escriba para añadir receptores...">
-			<small class="form-text text-muted">Escriba el nombre de un usuario y presione Enter. Escriba "All Users" para enviar a todos.</small>
+			<label for="dpt_receivers" class="form-label">Receptores</label>
+			<input id="dpt_receivers" name="dpt_receivers" class="form-control" placeholder="Escriba para añadir receptores...">
+			<small class="form-text text-muted">Escriba el nombre del Departamento y presione Enter. Escriba "All Users" para enviar a todos.</small>
 		</div>
 		<button type="submit" class="btn btn-success">Crear Documento</button>
+		{% if error %}
+		<div class="alert alert-danger mt-3">{{ error }}</div>
+		{% endif %}
 	</form>
 </div>
 <script>
-	// Sample data of users to simulate database entries
-	const users = [
-		{% for user in users %}
-		{ value: "{{ user['id'] }}", name: "{{ user['username'] }}" },
+	const departments = [
+		{% for department in departments %}
+		{ value: "{{ department['id'] }}", name: "{{ department['name'] }}" },
 		{% endfor %}
-		{ value: "all", name: "All Users" }
 	];
 
 	// Initialize Tagify on the input
 	const form = document.getElementById('form');
-	const input = document.getElementById('receivers');
+	const input = document.getElementById('dpt_receivers');
 	const tagify = new Tagify(input, {
-		whitelist: users.map(user => user.name),
+		whitelist: departments.map(department => department.name),
 		dropdown: {
-			maxItems: 5,           // Maximum items to show in dropdown
+			maxItems: 10,           // Maximum items to show in dropdown
 			classname: 'tagify-dropdown', // Custom dropdown class
 			enabled: 0,            // Always show dropdown
 			closeOnSelect: false   // Don't close dropdown when an item is selected
@@ -50,8 +51,8 @@
 	// Convert usernames back to IDs for submission
 	form.addEventListener('submit', () => {
 		const selectedTags = tagify.value.map(tag => {
-			const user = users.find(u => u.name === tag.value);
-			return user ? user.value : null;
+			const department = departments.find(d => d.name === tag.value);
+			return department ? department.value : null;
 		});
 		input.value = selectedTags.join(',');
 	});

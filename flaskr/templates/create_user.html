@@ -11,17 +11,34 @@
 			<input type="text" class="form-control" name="username" id="username" placeholder="username" required>
 		</div>
 		<div class="mb-3">
+			<label for="email" class="form-label">Email</label>
+			<input type="email" class="form-control" name="email" id="email" placeholder="email" required>
+		</div>
+		<div class="mb-3">
 			<label for="password" class="form-label">Contraseña</label>
 			<input type="password" class="form-control" name="password" id="password" required>
 		</div>
 		<div class="mb-3">
 			<label for="role" class="form-label">Rol</label>
 			<select name="role" class="form-select">
+				<option value="manager">Manager</option>
 				<option value="secretary">Secretary</option>
-				<option value="customer">Customer</option>
+				<option value="user">User</option>
+				<option value="guest">Guest</option>
+			</select>
+		</div>
+		<div class="mb-3">
+			<label for="role" class="form-label">Departamento</label>
+			<select name="department_id", class="form-select">
+				{% for department in departments %}
+				<option value="{{ department['id'] }}">{{ department['name'] }}</option>
+				{% endfor %}
 			</select>
 		</div>
 		<button type="submit" class="btn btn-success">Crear Usuario</button>
+		{% if error %}
+		<div class="alert alert-danger mt-3">{{ error }}</div>
+		{% endif %}
 	</form>
 </div>
 {% endblock %}
