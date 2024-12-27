@@ -71,7 +71,7 @@ CREATE TABLE document_filename (
 CREATE TABLE document_receiver (
 	document_id INTEGER NOT NULL,
 	receiver_id INTEGER NOT NULL,
-	received_at TIMESTAMP,
+	received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	status TEXT NOT NULL CHECK (status IN ('issued', 'received', 'archived')),
 
 	PRIMARY KEY (document_id, receiver_id),

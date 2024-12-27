@@ -23,7 +23,7 @@
 					{% for receiver in receivers %}
 					<tr>
 						<td>{{ loop.index }}</td>
-						<td>WIP</td>
+						<td>{{ timestamp - receiver['received_at'] }}</td>
 						<td>{{ receiver['receiver_username'] }}</td>
 						<td>{{ receiver['status'] }}</td>
 					</tr>

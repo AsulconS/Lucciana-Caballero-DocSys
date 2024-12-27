@@ -177,7 +177,7 @@ def follow_up(id):
 	"""View follow-up details for a specific document."""
 	db = get_db()
 	receivers = db.execute(
-		'SELECT u.username as receiver_username, dr.status AS status '
+		'SELECT u.username as receiver_username, dr.received_at AS received_at, dr.status AS status '
 		'FROM document_receiver dr '
 		'JOIN user u ON dr.receiver_id = u.id '
 		'WHERE dr.document_id = ?;',
@@ -194,7 +194,8 @@ def follow_up(id):
 	if document is None:
 		abort(404, f"Document with ID {id} doesn't exist.")
 
-	return render_template('follow_up.html', document=document, receivers=receivers)
+	timestamp = datetime.datetime.utcnow().replace(microsecond=0)
+	return render_template('follow_up.html', document=document, receivers=receivers, timestamp=timestamp)
 
 
 @bp.route('/<int:id>/observations', methods=('GET', 'POST'))
