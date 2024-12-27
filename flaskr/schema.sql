@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS department;
 DROP TABLE IF EXISTS observation;
 DROP TABLE IF EXISTS document_filename;
 DROP TABLE IF EXISTS document_receiver;
+DROP TABLE IF EXISTS followup_response;
 
 -- Department Table --
 CREATE TABLE department (
@@ -77,4 +78,15 @@ CREATE TABLE document_receiver (
 	PRIMARY KEY (document_id, receiver_id),
 	FOREIGN KEY (document_id) REFERENCES document (id),
 	FOREIGN KEY (receiver_id) REFERENCES user (id)
+);
+
+-- Followup Response Table --
+CREATE TABLE followup_response (
+	document_id INTEGER NOT NULL,
+	receiver_id INTEGER NOT NULL,
+	response_document_id INTEGER NOT NULL,
+
+	PRIMARY KEY (document_id, receiver_id, response_document_id),
+	FOREIGN KEY (document_id, receiver_id) REFERENCES document_receiver (document_id, receiver_id),
+	FOREIGN KEY (response_document_id) REFERENCES document (id)
 );

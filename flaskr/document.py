@@ -76,22 +76,28 @@ def create_user():
 	return render_template('create_user.html', departments=departments)
 
 
-@bp.route('/create_document', methods=('GET', 'POST'))
+@bp.route('/create_document/<ref_id>', methods=('GET', 'POST'))
 @login_required
-def create_document():
+def create_document(ref_id):
 	"""Create a new document."""
 	if g.user['role'] == 'guest':
 		flash('Guests cannot create documents.', category='error')
 		return redirect(url_for('document.index'))
 
+	try:
+		ref_id = int(ref_id)
+	except ValueError:
+		ref_id = -1
+
 	db = get_db()
 	users = db.execute('SELECT id, username FROM user').fetchall()
+	documents = db.execute('SELECT id, name FROM document').fetchall()
 	departments = db.execute('SELECT id, name FROM department').fetchall()
 
 	if request.method == 'POST':
 		file = request.files['file']
 		name = request.form['name']
-		dpt_receivers = request.form['dpt_receivers']
+		dpt_receivers = request.form['dpt_receivers'] if (ref_id < 0) else None
 		description = request.form['description']
 		error = None
 
@@ -105,6 +111,8 @@ def create_document():
 			error = 'File is required.'
 		elif not allowed_file(file.filename):
 			error = 'File type not supported.'
+		elif not dpt_receivers and (ref_id < 0):
+			error = 'Bad request'
 
 		if error is not None:
 			flash(error, category='error')
@@ -128,30 +136,46 @@ def create_document():
 			)
 			db.commit()
 
-			# Insert receivers
-			dpt_receivers = dpt_receivers.split(',')
-			if 'all' in dpt_receivers:
-				# Add all users except the admin as receivers
-				for user in users:
-					db.execute(
-						'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
-						(doc_id, user['id'], 'issued')
-					)
-			else:
-				# Add selected users as receivers
-				for dpt_id in dpt_receivers:
-					user_receivers = db.execute('SELECT id FROM user WHERE user.department_id = ?', (dpt_id,))
-					for user in user_receivers:
+			if ref_id < 0:
+				# Insert receivers
+				dpt_receivers = dpt_receivers.split(',')
+				if 'all' in dpt_receivers:
+					# Add all users except the admin as receivers
+					for user in users:
 						db.execute(
 							'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
 							(doc_id, user['id'], 'issued')
 						)
+						db.execute(
+							'INSERT INTO followup_response (document_id, receiver_id, response_document_id) VALUES (?, ?, ?)',
+							(doc_id, user['id'], doc_id)
+						)
+				else:
+					# Add selected users as receivers
+					for dpt_id in dpt_receivers:
+						user_receivers = db.execute('SELECT id FROM user WHERE user.department_id = ?', (dpt_id,))
+						for user in user_receivers:
+							db.execute(
+								'INSERT INTO document_receiver (document_id, receiver_id, status) VALUES (?, ?, ?)',
+								(doc_id, user['id'], 'issued')
+							)
+							db.execute(
+								'INSERT INTO followup_response (document_id, receiver_id, response_document_id) VALUES (?, ?, ?)',
+								(doc_id, user['id'], doc_id)
+							)
+			else:
+				db.execute(
+					'INSERT INTO followup_response (document_id, receiver_id, response_document_id) VALUES (?, ?, ?)',
+					(ref_id, g.user['id'], doc_id)
+				)
 			db.commit()
 
 			flash('Document created successfully!', category='success')
 			return redirect(url_for('document.index'))
 
-	return render_template('create_document.html', departments=departments)
+	if ref_id < 0:
+		return render_template('create_document.html', departments=departments, documents=documents)
+	return render_template('create_document.html', departments=departments, documents=documents, ref_id=int(ref_id))
 
 
 @bp.route('/status/<status>', methods=('GET',))

@@ -17,11 +17,26 @@
 		<div class="mb-3">
 			<input type="file" class="form-control" name="file" id="file" required>
 		</div>
+		{% if documents %}
+		<div class="mb-3">
+			<label for="reference" class="form-label">Documento de Referencia</label>
+			<select name="reference", class="form-select" {% if ref_id %}disabled{% endif %}>
+				{% if not ref_id %}
+				<option value="" selected disabled hidden>Escoja Documento de Referencia</option>
+				{% endif %}
+				{% for doc in documents %}
+				<option value="{{ doc['id'] }}" {% if ref_id and ref_id == doc['id'] %}selected{% endif %}>{{ doc['id'] }}: {{ doc['name'] }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		{% endif %}
+		{% if not ref_id %}
 		<div class="mb-3">
 			<label for="dpt_receivers" class="form-label">Receptores</label>
 			<input id="dpt_receivers" name="dpt_receivers" class="form-control" placeholder="Escriba para añadir receptores...">
 			<small class="form-text text-muted">Escriba el nombre del Departamento y presione Enter. Escriba "All Users" para enviar a todos.</small>
 		</div>
+		{% endif %}
 		<button type="submit" class="btn btn-success">Crear Documento</button>
 		{% if error %}
 		<div class="alert alert-danger mt-3">{{ error }}</div>

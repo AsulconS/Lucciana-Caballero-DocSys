@@ -22,8 +22,8 @@
 			</div>
 		</form>
 		<div>
-			{% if g.user['role'] in ['admin', 'manager', 'secretary'] %}
-			<a href="{{ url_for('document.create_document') }}" class="btn btn-success">Crear Documento</a>
+			{% if g.user['role'] != 'guest' %}
+			<a href="{{ url_for('document.create_document', ref_id='default') }}" class="btn btn-success">Crear Documento</a>
 			{% endif %}
 			{% if g.user['role'] == 'admin' %}
 			<a href="{{ url_for('document.create_user') }}" class="btn btn-dark">Crear Usuario</a>
@@ -60,9 +60,12 @@
 					<a href="{{ url_for('document.follow_up', id=doc['id']) }}" class="btn btn-warning btn-sm"><i class="bi bi-pin-map"></i></a>
 					<a href="{{ url_for('document.observations', id=doc['id']) }}" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i></a>
 					<a href="{{ url_for('document.download_file', id=doc['id']) }}" class="btn btn-success btn-sm"><i class="bi bi-download"></i></a>
+					<a href="{{ url_for('document.create_document', ref_id=doc['id']) }}" class="btn btn-dark btn-sm"><i class="bi bi-arrow-90deg-left"></i></a>
 
 					<a href="{{ url_for('document.mark_received', id=doc['id']) }}" class="btn btn-success btn-sm">Mark as Received</a>
+					{% if g.user['role'] in ['admin', 'secretary'] %}
 					<a href="{{ url_for('document.mark_archived', id=doc['id']) }}" class="btn btn-danger btn-sm">Mark as Archived</a>
+					{% endif %}
 
 					{% if g.user['role'] == 'admin' %}
 					<!-- Delete button -->
